@@ -56,6 +56,7 @@ ADMIN_CHAT_ID = int(
 # =========================================================
 
 logged_in_users = set()
+pending_delete_requests = {}
 
 # =========================================================
 # DATABASE
@@ -1386,7 +1387,7 @@ async def edit_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # =========================================================
-# DELETE CUSTOMER
+# DELETE REQUEST
 # =========================================================
 
 async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1413,7 +1414,118 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         customer_id = int(context.args[0])
 
+        # ==========================================
         # CHECK CUSTOMER
+        # ==========================================
+
+        cursor.execute("""
+        SELECT
+            name,
+            pending_amount
+        FROM customers
+        WHERE id=?
+        """, (customer_id,))
+
+        customer = cursor.fetchone()
+
+        if not customer:
+
+            await update.message.reply_text(
+                "❌ Customer not found."
+            )
+
+            return
+
+        customer_name = customer[0]
+
+        pending_amount = customer[1]
+
+        # ==========================================
+        # SAVE DELETE REQUEST
+        # ==========================================
+
+        pending_delete_requests[user_id] = customer_id
+
+        msg = f"""
+⚠️ DELETE CONFIRMATION
+
+🆔 ID: {customer_id}
+
+👤 Name: {customer_name}
+
+📉 Pending:
+₹{pending_amount}
+
+━━━━━━━━━━━━━━━━━━
+
+To confirm deletion:
+
+/confirmdelete {customer_id}
+
+To cancel:
+
+/canceldelete
+"""
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            f"❌ Error:\n{str(e)}"
+        )
+
+
+# =========================================================
+# CONFIRM DELETE
+# =========================================================
+
+async def confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+
+        await update.message.reply_text(
+            "🔒 Login required."
+        )
+
+        return
+
+    try:
+
+        if user_id not in pending_delete_requests:
+
+            await update.message.reply_text(
+                "❌ No pending delete request."
+            )
+
+            return
+
+        if len(context.args) < 1:
+
+            await update.message.reply_text(
+                "❌ Use:\n/confirmdelete CUSTOMER_ID"
+            )
+
+            return
+
+        customer_id = int(context.args[0])
+
+        saved_customer_id = pending_delete_requests[user_id]
+
+        if customer_id != saved_customer_id:
+
+            await update.message.reply_text(
+                "❌ Customer ID mismatch."
+            )
+
+            return
+
+        # ==========================================
+        # GET CUSTOMER
+        # ==========================================
+
         cursor.execute("""
         SELECT name
         FROM customers
@@ -1432,13 +1544,19 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         customer_name = customer[0]
 
-        # DELETE PAYMENT HISTORY
+        # ==========================================
+        # DELETE PAYMENTS
+        # ==========================================
+
         cursor.execute("""
         DELETE FROM payments
         WHERE customer_id=?
         """, (customer_id,))
 
+        # ==========================================
         # DELETE CUSTOMER
+        # ==========================================
+
         cursor.execute("""
         DELETE FROM customers
         WHERE id=?
@@ -1446,17 +1564,47 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         conn.commit()
 
-        await update.message.reply_text(
-            f"🗑 CUSTOMER DELETED\n\n"
-            f"🆔 ID: {customer_id}\n"
-            f"👤 Name: {customer_name}\n\n"
-            f"✅ Customer data removed successfully."
-        )
+        # REMOVE REQUEST
+        del pending_delete_requests[user_id]
+
+        msg = f"""
+🗑 CUSTOMER DELETED
+
+🆔 ID: {customer_id}
+
+👤 Name: {customer_name}
+
+✅ Customer removed successfully.
+"""
+
+        await update.message.reply_text(msg)
 
     except Exception as e:
 
         await update.message.reply_text(
             f"❌ Error:\n{str(e)}"
+        )
+
+# =========================================================
+# CANCEL DELETE
+# =========================================================
+
+async def cancel_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    user_id = update.effective_user.id
+
+    if user_id in pending_delete_requests:
+
+        del pending_delete_requests[user_id]
+
+        await update.message.reply_text(
+            "✅ Delete request cancelled."
+        )
+
+    else:
+
+        await update.message.reply_text(
+            "❌ No pending delete request."
         )
 
 # =========================================================
@@ -1597,6 +1745,14 @@ def main():
 
     app.add_handler(
         CommandHandler("delete", delete)
+    )
+
+    app.add_handler(
+        CommandHandler("confirmdelete", confirm_delete)
+    )
+
+    app.add_handler(
+        CommandHandler("canceldelete", cancel_delete)
     )
 
     # =====================================================
