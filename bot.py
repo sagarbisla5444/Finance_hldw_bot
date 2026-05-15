@@ -12,6 +12,7 @@
 
 # =========================================================
 
+import os
 import sqlite3
 from datetime import datetime
 
@@ -26,7 +27,11 @@ from telegram.ext import (
 # BOT CONFIG
 # =========================================================
 
-BOT_TOKEN = "TOKEN"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "12345")
+
+logged_in_users = set()
 
 # =========================================================
 # ADMIN PASSWORD
@@ -42,7 +47,7 @@ logged_in_users = set()
 # =========================================================
 
 conn = sqlite3.connect(
-    "finance.db",
+    "/tmp/finance.db",
     check_same_thread=False
 )
 
