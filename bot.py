@@ -195,54 +195,308 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # =========================================================
-# START
+# START COMMAND
 # =========================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = """
-🏦 SMALL FINANCE BOT
+🏦 SMALL FINANCE COLLECTION BOT
 
-━━━━━━━━━━━━━━━━━━
-📌 COMMANDS
-━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━
+🔐 ADMIN COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━
 
+1️⃣ LOGIN ADMIN
+
+Command:
 /login PASSWORD
 
+Purpose:
+Login to use all finance features.
+
+Example:
+/login 12345
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+2️⃣ LOGOUT ADMIN
+
+Command:
 /logout
 
+Purpose:
+Logout from admin panel.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+👤 CUSTOMER COMMANDS
+━━━━━━━━━━━━━━━━━━━━━━
+
+3️⃣ ADD NEW CUSTOMER
+
+Command:
 /add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS
 
+Purpose:
+Create new finance customer entry.
+
+Explanation:
+
+• NAME
+Customer name
+
+• MOBILE
+Customer phone number
+
+• LOAN
+Amount given to customer
+
+• RETURN
+Total amount you will receive
+
+• TYPE
+Installment type:
+daily / weekly / monthly
+
+• INSTALLMENTS
+Total number of installments
+
+Example:
+/add Ramesh 9876543210 10000 12000 weekly 12
+
+Meaning:
+✅ Loan Given = ₹10,000
+✅ Return Amount = ₹12,000
+✅ Profit = ₹2,000
+✅ Weekly Collection
+✅ 12 Installments
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+4️⃣ ADD PAYMENT
+
+Command:
 /pay CUSTOMER_ID AMOUNT
 
+Purpose:
+Add installment/payment received.
+
+Example:
+/pay 1 1000
+
+Meaning:
+✅ Customer ID = 1
+✅ Received = ₹1,000
+
+Bot Automatically:
+✅ Updates paid amount
+✅ Updates pending amount
+✅ Updates next due date
+✅ Removes overdue status
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+5️⃣ CUSTOMER DETAILS
+
+Command:
 /customer CUSTOMER_ID
 
+Purpose:
+View full customer details.
+
+Example:
+/customer 1
+
+Shows:
+✅ Name
+✅ Mobile
+✅ Loan Amount
+✅ Return Amount
+✅ Installment Type
+✅ Paid Amount
+✅ Pending Amount
+✅ Due Date
+✅ Overdue Days
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+6️⃣ CUSTOMER LIST
+
+Command:
 /list
 
+Purpose:
+Show all customers.
+
+Shows:
+✅ Customer IDs
+✅ Names
+✅ Pending Amounts
+✅ Due Dates
+✅ Overdue Status
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+7️⃣ TOTAL BUSINESS SUMMARY
+
+Command:
 /total
 
+Purpose:
+Show complete finance summary.
+
+Shows:
+✅ Total Investment
+✅ Expected Return
+✅ Total Collected
+✅ Total Pending
+✅ Expected Profit
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+8️⃣ PENDING CUSTOMERS
+
+Command:
 /pending
 
+Purpose:
+Show customers whose installments are pending.
+
+Shows:
+✅ Pending Amount
+✅ Due Date
+✅ Overdue Days
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+✏️ EDIT CUSTOMER DATA
+━━━━━━━━━━━━━━━━━━━━━━
+
+9️⃣ EDIT CUSTOMER
+
+Command:
+/edit CUSTOMER_ID FIELD VALUE
+
+Purpose:
+Edit any wrong entry or customer detail.
+
+Editable Fields:
+
+• name
+• mobile
+• loan
+• return
+• type
+• installments
+• installment
+• paid
+• pending
+• duedate
+• overdue
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EDIT EXAMPLES
+
+Change Name:
+/edit 1 name Ramesh Kumar
+
+Change Mobile:
+/edit 1 mobile 9999999999
+
+Change Loan:
+/edit 1 loan 15000
+
+Change Return:
+/edit 1 return 18000
+
+Change Installments:
+/edit 1 installments 24
+
+Change Pending:
+/edit 1 pending 5000
+
+Change Due Date:
+/edit 1 duedate 2026-05-30
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🗑 DELETE CUSTOMER
+━━━━━━━━━━━━━━━━━━━━━━
+
+🔟 DELETE CUSTOMER
+
+Command:
 /delete CUSTOMER_ID
 
-━━━━━━━━━━━━━━━━━━
+Purpose:
+Delete customer permanently.
 
-📆 TYPES:
-• daily
-• weekly
-• monthly
+Example:
+/delete 1
 
-━━━━━━━━━━━━━━━━━━
+⚠️ Warning:
+Deleted data cannot be recovered.
 
-EXAMPLE:
+━━━━━━━━━━━━━━━━━━━━━━
+
+📆 INSTALLMENT TYPES
+━━━━━━━━━━━━━━━━━━━━━━
+
+daily
+→ Collection every day
+
+weekly
+→ Collection every 7 days
+
+monthly
+→ Collection every 30 days
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🔔 AUTOMATIC FEATURES
+━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Daily reminder at 6:10 PM
+
+✅ Pending installment reminders
+
+✅ Overdue customer tracking
+
+✅ Auto next due date update
+
+✅ Duplicate names supported
+
+✅ Customer ID system
+
+✅ Railway cloud compatible
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 QUICK START GUIDE
+━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1:
+Login Admin
+
+/login 12345
+
+STEP 2:
+Add Customer
 
 /add Ramesh 9876543210 10000 12000 weekly 12
 
+STEP 3:
+Add Payment
+
 /pay 1 1000
+
+━━━━━━━━━━━━━━━━━━━━━━
 """
 
     await update.message.reply_text(text)
-
+    
 # =========================================================
 # HELP
 # =========================================================
@@ -798,7 +1052,341 @@ async def pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # =========================================================
-# DELETE
+# ADVANCED EDIT CUSTOMER
+# =========================================================
+
+async def edit_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+
+        await update.message.reply_text(
+            "🔒 Login required."
+        )
+
+        return
+
+    try:
+
+        args = context.args
+
+        if len(args) < 3:
+
+            await update.message.reply_text(
+                "❌ Use:\n\n"
+                "/edit CUSTOMER_ID FIELD VALUE\n\n"
+                "FIELDS:\n"
+                "name\n"
+                "mobile\n"
+                "loan\n"
+                "return\n"
+                "type\n"
+                "installments\n"
+                "installment\n"
+                "paid\n"
+                "pending\n"
+                "duedate\n"
+                "overdue"
+            )
+
+            return
+
+        customer_id = int(args[0])
+
+        field = args[1].lower()
+
+        value = " ".join(args[2:])
+
+        # ==========================================
+        # GET CUSTOMER
+        # ==========================================
+
+        cursor.execute("""
+        SELECT
+            loan_amount,
+            return_amount,
+            total_installments
+        FROM customers
+        WHERE id=?
+        """, (customer_id,))
+
+        customer = cursor.fetchone()
+
+        if not customer:
+
+            await update.message.reply_text(
+                "❌ Customer not found."
+            )
+
+            return
+
+        loan_amount = customer[0]
+
+        return_amount = customer[1]
+
+        total_installments = customer[2]
+
+        # ==========================================
+        # NAME
+        # ==========================================
+
+        if field == "name":
+
+            cursor.execute("""
+            UPDATE customers
+            SET name=?
+            WHERE id=?
+            """, (
+                value,
+                customer_id
+            ))
+
+        # ==========================================
+        # MOBILE
+        # ==========================================
+
+        elif field == "mobile":
+
+            cursor.execute("""
+            UPDATE customers
+            SET mobile=?
+            WHERE id=?
+            """, (
+                value,
+                customer_id
+            ))
+
+        # ==========================================
+        # LOAN
+        # ==========================================
+
+        elif field == "loan":
+
+            cursor.execute("""
+            UPDATE customers
+            SET loan_amount=?
+            WHERE id=?
+            """, (
+                float(value),
+                customer_id
+            ))
+
+        # ==========================================
+        # RETURN
+        # ==========================================
+
+        elif field == "return":
+
+            new_return = float(value)
+
+            new_installment = (
+                new_return / total_installments
+            )
+
+            cursor.execute("""
+            UPDATE customers
+            SET
+                return_amount=?,
+                installment_amount=?
+            WHERE id=?
+            """, (
+                new_return,
+                new_installment,
+                customer_id
+            ))
+
+        # ==========================================
+        # TYPE
+        # ==========================================
+
+        elif field == "type":
+
+            cursor.execute("""
+            UPDATE customers
+            SET installment_type=?
+            WHERE id=?
+            """, (
+                value.lower(),
+                customer_id
+            ))
+
+        # ==========================================
+        # INSTALLMENTS
+        # ==========================================
+
+        elif field == "installments":
+
+            new_installments = int(value)
+
+            new_installment_amount = (
+                return_amount / new_installments
+            )
+
+            cursor.execute("""
+            UPDATE customers
+            SET
+                total_installments=?,
+                installment_amount=?
+            WHERE id=?
+            """, (
+                new_installments,
+                new_installment_amount,
+                customer_id
+            ))
+
+        # ==========================================
+        # INSTALLMENT
+        # ==========================================
+
+        elif field == "installment":
+
+            cursor.execute("""
+            UPDATE customers
+            SET installment_amount=?
+            WHERE id=?
+            """, (
+                float(value),
+                customer_id
+            ))
+
+        # ==========================================
+        # PAID
+        # ==========================================
+
+        elif field == "paid":
+
+            cursor.execute("""
+            UPDATE customers
+            SET paid_amount=?
+            WHERE id=?
+            """, (
+                float(value),
+                customer_id
+            ))
+
+        # ==========================================
+        # PENDING
+        # ==========================================
+
+        elif field == "pending":
+
+            cursor.execute("""
+            UPDATE customers
+            SET pending_amount=?
+            WHERE id=?
+            """, (
+                float(value),
+                customer_id
+            ))
+
+        # ==========================================
+        # DUE DATE
+        # ==========================================
+
+        elif field == "duedate":
+
+            cursor.execute("""
+            UPDATE customers
+            SET next_due_date=?
+            WHERE id=?
+            """, (
+                value,
+                customer_id
+            ))
+
+        # ==========================================
+        # OVERDUE
+        # ==========================================
+
+        elif field == "overdue":
+
+            cursor.execute("""
+            UPDATE customers
+            SET overdue_days=?
+            WHERE id=?
+            """, (
+                int(value),
+                customer_id
+            ))
+
+        else:
+
+            await update.message.reply_text(
+                "❌ Invalid field."
+            )
+
+            return
+
+        conn.commit()
+
+        # ==========================================
+        # UPDATED CUSTOMER DETAILS
+        # ==========================================
+
+        cursor.execute("""
+        SELECT
+            id,
+            name,
+            mobile,
+            loan_amount,
+            return_amount,
+            installment_type,
+            total_installments,
+            installment_amount,
+            paid_amount,
+            pending_amount,
+            next_due_date,
+            overdue_days
+        FROM customers
+        WHERE id=?
+        """, (customer_id,))
+
+        updated = cursor.fetchone()
+
+        msg = f'''
+✅ CUSTOMER UPDATED
+
+🆔 ID: {updated[0]}
+
+👤 Name: {updated[1]}
+
+📱 Mobile: {updated[2]}
+
+💰 Loan: ₹{updated[3]}
+
+💵 Return: ₹{updated[4]}
+
+📆 Type: {updated[5]}
+
+🔁 Installments: {updated[6]}
+
+💳 Installment:
+₹{updated[7]}
+
+✅ Paid:
+₹{updated[8]}
+
+📉 Pending:
+₹{updated[9]}
+
+📅 Due Date:
+{updated[10]}
+
+⚠️ Overdue:
+{updated[11]} days
+'''
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            f"❌ Error:\n{str(e)}"
+        )
+
+# =========================================================
+# DELETE CUSTOMER
 # =========================================================
 
 async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -825,6 +1413,32 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         customer_id = int(context.args[0])
 
+        # CHECK CUSTOMER
+        cursor.execute("""
+        SELECT name
+        FROM customers
+        WHERE id=?
+        """, (customer_id,))
+
+        customer = cursor.fetchone()
+
+        if not customer:
+
+            await update.message.reply_text(
+                "❌ Customer not found."
+            )
+
+            return
+
+        customer_name = customer[0]
+
+        # DELETE PAYMENT HISTORY
+        cursor.execute("""
+        DELETE FROM payments
+        WHERE customer_id=?
+        """, (customer_id,))
+
+        # DELETE CUSTOMER
         cursor.execute("""
         DELETE FROM customers
         WHERE id=?
@@ -833,7 +1447,10 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
 
         await update.message.reply_text(
-            f"🗑 Customer deleted.\nID: {customer_id}"
+            f"🗑 CUSTOMER DELETED\n\n"
+            f"🆔 ID: {customer_id}\n"
+            f"👤 Name: {customer_name}\n\n"
+            f"✅ Customer data removed successfully."
         )
 
     except Exception as e:
@@ -972,6 +1589,10 @@ def main():
 
     app.add_handler(
         CommandHandler("pending", pending)
+    )
+
+    app.add_handler(
+        CommandHandler("edit", edit_customer)
     )
 
     app.add_handler(
