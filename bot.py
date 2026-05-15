@@ -1,22 +1,34 @@
 # =========================================================
 # SMALL FINANCE TELEGRAM BOT
-# COMPLETE READY-TO-RUN CODE
-# ADMIN LOGIN + DUPLICATE NAMES + FINANCE SYSTEM
+# COMPLETE RAILWAY READY CODE
 # =========================================================
-
-# INSTALL:
-# pip install python-telegram-bot==20.7
-
-# RUN:
-# python bot.py
-
+#
+# FEATURES:
+#
+# ✅ Admin password login
+# ✅ Duplicate customer names
+# ✅ Customer ID system
+# ✅ Daily / Weekly / Monthly installment
+# ✅ Auto overdue tracking
+# ✅ Daily reminder at 6:10 PM
+# ✅ Railway cloud compatible
+# ✅ Pending notifications daily
+# ✅ Total finance summary
+# ✅ Customer management
+#
 # =========================================================
 
 import os
 import sqlite3
-from datetime import datetime
+
+from datetime import (
+    datetime,
+    timedelta,
+    time
+)
 
 from telegram import Update
+
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -24,22 +36,25 @@ from telegram.ext import (
 )
 
 # =========================================================
-# BOT CONFIG
+# ENV VARIABLES
 # =========================================================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "12345")
+ADMIN_PASSWORD = os.getenv(
+    "ADMIN_PASSWORD",
+    "12345"
+)
 
-logged_in_users = set()
+# YOUR TELEGRAM USER ID
+ADMIN_CHAT_ID = int(
+    os.getenv("ADMIN_CHAT_ID", "123456789")
+)
 
 # =========================================================
-# ADMIN PASSWORD
+# LOGIN SESSION
 # =========================================================
 
-ADMIN_PASSWORD = "12345"
-
-# Logged-in admin users
 logged_in_users = set()
 
 # =========================================================
@@ -80,6 +95,10 @@ CREATE TABLE IF NOT EXISTS customers (
 
     pending_amount REAL,
 
+    next_due_date TEXT,
+
+    overdue_days INTEGER DEFAULT 0,
+
     created_date TEXT
 )
 """)
@@ -114,7 +133,7 @@ def is_admin(user_id):
     return user_id in logged_in_users
 
 # =========================================================
-# LOGIN COMMAND
+# LOGIN
 # =========================================================
 
 async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -154,7 +173,7 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # =========================================================
-# LOGOUT COMMAND
+# LOGOUT
 # =========================================================
 
 async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -176,7 +195,7 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # =========================================================
-# START COMMAND
+# START
 # =========================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -185,102 +204,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🏦 SMALL FINANCE BOT
 
 ━━━━━━━━━━━━━━━━━━
-📌 AVAILABLE COMMANDS
+📌 COMMANDS
 ━━━━━━━━━━━━━━━━━━
 
-1️⃣ LOGIN
+/login PASSWORD
 
-Syntax:
-<code>/login PASSWORD</code>
+/logout
 
-Example:
-<code>/login 12345</code>
+/add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS
 
-━━━━━━━━━━━━━━━━━━
+/pay CUSTOMER_ID AMOUNT
 
-2️⃣ LOGOUT
+/customer CUSTOMER_ID
 
-Syntax:
-<code>/logout</code>
+/list
 
-━━━━━━━━━━━━━━━━━━
+/total
 
-3️⃣ ADD CUSTOMER
+/pending
 
-Syntax:
-<code>/add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS</code>
-
-Example:
-<code>/add Ramesh 9876543210 10000 12000 weekly 12</code>
+/delete CUSTOMER_ID
 
 ━━━━━━━━━━━━━━━━━━
 
-4️⃣ ADD PAYMENT
-
-Syntax:
-<code>/pay CUSTOMER_ID AMOUNT</code>
-
-Example:
-<code>/pay 1 1000</code>
-
-━━━━━━━━━━━━━━━━━━
-
-5️⃣ CUSTOMER DETAILS
-
-Syntax:
-<code>/customer CUSTOMER_ID</code>
-
-Example:
-<code>/customer 1</code>
-
-━━━━━━━━━━━━━━━━━━
-
-6️⃣ CUSTOMER LIST
-
-Syntax:
-<code>/list</code>
-
-━━━━━━━━━━━━━━━━━━
-
-7️⃣ TOTAL SUMMARY
-
-Syntax:
-<code>/total</code>
-
-━━━━━━━━━━━━━━━━━━
-
-8️⃣ PENDING CUSTOMERS
-
-Syntax:
-<code>/pending</code>
-
-━━━━━━━━━━━━━━━━━━
-
-9️⃣ DELETE CUSTOMER
-
-Syntax:
-<code>/delete CUSTOMER_ID</code>
-
-Example:
-<code>/delete 1</code>
-
-━━━━━━━━━━━━━━━━━━
-
-📆 Installment Types:
+📆 TYPES:
 • daily
 • weekly
 • monthly
 
 ━━━━━━━━━━━━━━━━━━
+
+EXAMPLE:
+
+/add Ramesh 9876543210 10000 12000 weekly 12
+
+/pay 1 1000
 """
 
-    await update.message.reply_text(
-        text,
-        parse_mode="HTML"
-    )
+    await update.message.reply_text(text)
 
 # =========================================================
-# HELP COMMAND
+# HELP
 # =========================================================
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -293,13 +257,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required.\nUse:\n/login PASSWORD"
         )
 
         return
@@ -312,10 +275,7 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await update.message.reply_text(
                 "❌ Wrong Syntax\n\n"
-                "Use:\n"
-                "/add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS\n\n"
-                "Example:\n"
-                "/add Ramesh 9876543210 10000 12000 weekly 12"
+                "/add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS"
             )
 
             return
@@ -342,7 +302,32 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "%Y-%m-%d %H:%M:%S"
         )
 
-        # INSERT CUSTOMER
+        today = datetime.now()
+
+        # NEXT DUE DATE
+        if installment_type == "daily":
+
+            next_due_date = (
+                today + timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+
+        elif installment_type == "weekly":
+
+            next_due_date = (
+                today + timedelta(days=7)
+            ).strftime("%Y-%m-%d")
+
+        elif installment_type == "monthly":
+
+            next_due_date = (
+                today + timedelta(days=30)
+            ).strftime("%Y-%m-%d")
+
+        else:
+
+            next_due_date = today.strftime("%Y-%m-%d")
+
+        # INSERT
         cursor.execute("""
         INSERT INTO customers (
 
@@ -354,11 +339,12 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             total_installments,
             installment_amount,
             pending_amount,
+            next_due_date,
             created_date
 
         )
 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
 
             name,
@@ -369,6 +355,7 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             total_installments,
             installment_amount,
             pending_amount,
+            next_due_date,
             created_date
         ))
 
@@ -381,25 +368,24 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = f"""
 ✅ CUSTOMER ADDED
 
-🆔 Customer ID: {customer_id}
+🆔 ID: {customer_id}
 
 👤 Name: {name}
 
 📱 Mobile: {mobile}
 
-💰 Loan Amount: ₹{loan_amount}
+💰 Loan: ₹{loan_amount}
 
-💵 Return Amount: ₹{return_amount}
+💵 Return: ₹{return_amount}
 
 📈 Profit: ₹{profit}
 
-📆 Installment Type: {installment_type}
+📆 Type: {installment_type}
 
-🔁 Installments: {total_installments}
+💳 Installment: ₹{installment_amount:.2f}
 
-💳 Installment Amount: ₹{installment_amount:.2f}
-
-📉 Pending Amount: ₹{pending_amount}
+📅 Next Due:
+{next_due_date}
 """
 
         await update.message.reply_text(msg)
@@ -416,13 +402,12 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required."
         )
 
         return
@@ -434,11 +419,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(args) < 2:
 
             await update.message.reply_text(
-                "❌ Wrong Syntax\n\n"
-                "Use:\n"
-                "/pay CUSTOMER_ID AMOUNT\n\n"
-                "Example:\n"
-                "/pay 1 1000"
+                "❌ Use:\n/pay CUSTOMER_ID AMOUNT"
             )
 
             return
@@ -452,7 +433,8 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         SELECT
             name,
             paid_amount,
-            pending_amount
+            pending_amount,
+            installment_type
         FROM customers
         WHERE id=?
         """, (customer_id,))
@@ -473,16 +455,46 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         pending_amount = customer[2] - amount
 
-        # UPDATE CUSTOMER
+        installment_type = customer[3]
+
+        today = datetime.now()
+
+        # NEXT DUE DATE
+        if installment_type == "daily":
+
+            next_due_date = (
+                today + timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+
+        elif installment_type == "weekly":
+
+            next_due_date = (
+                today + timedelta(days=7)
+            ).strftime("%Y-%m-%d")
+
+        elif installment_type == "monthly":
+
+            next_due_date = (
+                today + timedelta(days=30)
+            ).strftime("%Y-%m-%d")
+
+        else:
+
+            next_due_date = today.strftime("%Y-%m-%d")
+
+        # UPDATE
         cursor.execute("""
         UPDATE customers
         SET
             paid_amount=?,
-            pending_amount=?
+            pending_amount=?,
+            next_due_date=?,
+            overdue_days=0
         WHERE id=?
         """, (
             paid_amount,
             pending_amount,
+            next_due_date,
             customer_id
         ))
 
@@ -490,7 +502,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "%Y-%m-%d %H:%M:%S"
         )
 
-        # INSERT PAYMENT
+        # PAYMENT HISTORY
         cursor.execute("""
         INSERT INTO payments (
 
@@ -514,15 +526,18 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = f"""
 ✅ PAYMENT ADDED
 
-🆔 Customer ID: {customer_id}
+🆔 ID: {customer_id}
 
 👤 Name: {customer_name}
 
-💵 Payment: ₹{amount}
+💵 Paid: ₹{amount}
 
 ✅ Total Paid: ₹{paid_amount}
 
 📉 Pending: ₹{pending_amount}
+
+📅 Next Due:
+{next_due_date}
 """
 
         await update.message.reply_text(msg)
@@ -539,13 +554,12 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required."
         )
 
         return
@@ -555,11 +569,7 @@ async def customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(context.args) < 1:
 
             await update.message.reply_text(
-                "❌ Wrong Syntax\n\n"
-                "Use:\n"
-                "/customer CUSTOMER_ID\n\n"
-                "Example:\n"
-                "/customer 1"
+                "❌ Use:\n/customer CUSTOMER_ID"
             )
 
             return
@@ -591,22 +601,28 @@ async def customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 📱 Mobile: {data[2]}
 
-💰 Loan Amount: ₹{data[3]}
+💰 Loan: ₹{data[3]}
 
-💵 Return Amount: ₹{data[4]}
+💵 Return: ₹{data[4]}
 
-📆 Installment Type: {data[5]}
+📆 Type: {data[5]}
 
-🔁 Total Installments: {data[6]}
+🔁 Installments: {data[6]}
 
-💳 Installment Amount: ₹{data[7]:.2f}
+💳 Installment:
+₹{data[7]:.2f}
 
-✅ Paid Amount: ₹{data[8]}
+✅ Paid:
+₹{data[8]}
 
-📉 Pending Amount: ₹{data[9]}
+📉 Pending:
+₹{data[9]}
 
-📅 Created:
+📅 Next Due:
 {data[10]}
+
+⚠️ Overdue Days:
+{data[11]}
 """
 
         await update.message.reply_text(msg)
@@ -623,13 +639,12 @@ async def customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def list_customers(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required."
         )
 
         return
@@ -638,7 +653,9 @@ async def list_customers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     SELECT
         id,
         name,
-        pending_amount
+        pending_amount,
+        next_due_date,
+        overdue_days
     FROM customers
     ORDER BY id DESC
     """)
@@ -648,7 +665,7 @@ async def list_customers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not customers:
 
         await update.message.reply_text(
-            "❌ No customers found."
+            "❌ No customers."
         )
 
         return
@@ -658,26 +675,27 @@ async def list_customers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for customer in customers:
 
         msg += (
-            f"🆔 ID: {customer[0]}\n"
-            f"👤 Name: {customer[1]}\n"
-            f"📉 Pending: ₹{customer[2]}\n\n"
+            f"🆔 {customer[0]}\n"
+            f"👤 {customer[1]}\n"
+            f"📉 ₹{customer[2]}\n"
+            f"📅 {customer[3]}\n"
+            f"⚠️ {customer[4]} days\n\n"
         )
 
     await update.message.reply_text(msg)
 
 # =========================================================
-# TOTAL SUMMARY
+# TOTAL
 # =========================================================
 
 async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required."
         )
 
         return
@@ -700,22 +718,22 @@ async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     invested = data[0] or 0
 
-    expected_return = data[1] or 0
+    returns = data[1] or 0
 
     collected = data[2] or 0
 
     pending = data[3] or 0
 
-    profit = expected_return - invested
+    profit = returns - invested
 
     msg = f"""
 📊 TOTAL SUMMARY
 
-💰 Total Invested:
+💰 Invested:
 ₹{invested}
 
 💵 Expected Return:
-₹{expected_return}
+₹{returns}
 
 ✅ Collected:
 ₹{collected}
@@ -723,25 +741,24 @@ async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📉 Pending:
 ₹{pending}
 
-📈 Expected Profit:
+📈 Profit:
 ₹{profit}
 """
 
     await update.message.reply_text(msg)
 
 # =========================================================
-# PENDING CUSTOMERS
+# PENDING
 # =========================================================
 
 async def pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required."
         )
 
         return
@@ -750,10 +767,11 @@ async def pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
     SELECT
         id,
         name,
-        pending_amount
+        pending_amount,
+        overdue_days
     FROM customers
     WHERE pending_amount > 0
-    ORDER BY pending_amount DESC
+    ORDER BY overdue_days DESC
     """)
 
     rows = cursor.fetchall()
@@ -771,26 +789,26 @@ async def pending(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for row in rows:
 
         msg += (
-            f"🆔 ID: {row[0]}\n"
-            f"👤 Name: {row[1]}\n"
-            f"💰 Pending: ₹{row[2]}\n\n"
+            f"🆔 {row[0]}\n"
+            f"👤 {row[1]}\n"
+            f"💰 ₹{row[2]}\n"
+            f"⚠️ {row[3]} days overdue\n\n"
         )
 
     await update.message.reply_text(msg)
 
 # =========================================================
-# DELETE CUSTOMER
+# DELETE
 # =========================================================
 
 async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ADMIN CHECK
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
 
         await update.message.reply_text(
-            "🔒 Admin login required.\n\nUse:\n/login PASSWORD"
+            "🔒 Login required."
         )
 
         return
@@ -800,11 +818,7 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(context.args) < 1:
 
             await update.message.reply_text(
-                "❌ Wrong Syntax\n\n"
-                "Use:\n"
-                "/delete CUSTOMER_ID\n\n"
-                "Example:\n"
-                "/delete 1"
+                "❌ Use:\n/delete CUSTOMER_ID"
             )
 
             return
@@ -819,14 +833,94 @@ async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
 
         await update.message.reply_text(
-            f"🗑 Customer deleted.\n\n"
-            f"🆔 ID: {customer_id}"
+            f"🗑 Customer deleted.\nID: {customer_id}"
         )
 
     except Exception as e:
 
         await update.message.reply_text(
             f"❌ Error:\n{str(e)}"
+        )
+
+# =========================================================
+# DAILY REMINDER
+# =========================================================
+
+async def daily_reminder(context):
+
+    today = datetime.now().strftime(
+        "%Y-%m-%d"
+    )
+
+    cursor.execute("""
+    SELECT
+        id,
+        name,
+        installment_amount,
+        pending_amount,
+        next_due_date,
+        overdue_days
+    FROM customers
+    WHERE pending_amount > 0
+    """)
+
+    customers = cursor.fetchall()
+
+    if not customers:
+
+        return
+
+    msg = "📢 INSTALLMENT REMINDER\n\n"
+
+    found = False
+
+    for customer in customers:
+
+        customer_id = customer[0]
+
+        name = customer[1]
+
+        installment = customer[2]
+
+        pending = customer[3]
+
+        due_date = customer[4]
+
+        overdue_days = customer[5]
+
+        # OVERDUE CHECK
+        if due_date <= today:
+
+            found = True
+
+            overdue_days += 1
+
+            # UPDATE OVERDUE
+            cursor.execute("""
+            UPDATE customers
+            SET overdue_days=?
+            WHERE id=?
+            """, (
+                overdue_days,
+                customer_id
+            ))
+
+            conn.commit()
+
+            msg += (
+                f"🆔 ID: {customer_id}\n"
+                f"👤 Name: {name}\n"
+                f"💳 Installment: ₹{installment}\n"
+                f"📉 Pending: ₹{pending}\n"
+                f"⚠️ Overdue: {overdue_days} days\n"
+                f"📅 Due: {due_date}\n\n"
+            )
+
+    if found:
+
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=msg
         )
 
 # =========================================================
@@ -840,34 +934,67 @@ def main():
     ).build()
 
     # COMMANDS
-    app.add_handler(CommandHandler("start", start))
+    app.add_handler(
+        CommandHandler("start", start)
+    )
 
-    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(
+        CommandHandler("help", help_command)
+    )
 
-    app.add_handler(CommandHandler("login", login))
+    app.add_handler(
+        CommandHandler("login", login)
+    )
 
-    app.add_handler(CommandHandler("logout", logout))
+    app.add_handler(
+        CommandHandler("logout", logout)
+    )
 
-    app.add_handler(CommandHandler("add", add_customer))
+    app.add_handler(
+        CommandHandler("add", add_customer)
+    )
 
-    app.add_handler(CommandHandler("pay", pay))
+    app.add_handler(
+        CommandHandler("pay", pay)
+    )
 
-    app.add_handler(CommandHandler("customer", customer))
+    app.add_handler(
+        CommandHandler("customer", customer)
+    )
 
-    app.add_handler(CommandHandler("list", list_customers))
+    app.add_handler(
+        CommandHandler("list", list_customers)
+    )
 
-    app.add_handler(CommandHandler("total", total))
+    app.add_handler(
+        CommandHandler("total", total)
+    )
 
-    app.add_handler(CommandHandler("pending", pending))
+    app.add_handler(
+        CommandHandler("pending", pending)
+    )
 
-    app.add_handler(CommandHandler("delete", delete))
+    app.add_handler(
+        CommandHandler("delete", delete)
+    )
+
+    # =====================================================
+    # DAILY REMINDER 6:10 PM
+    # =====================================================
+
+    job_queue = app.job_queue
+
+    job_queue.run_daily(
+        daily_reminder,
+        time=time(hour=18, minute=10)
+    )
 
     print("✅ BOT RUNNING...")
 
     app.run_polling()
 
 # =========================================================
-# START BOT
+# START
 # =========================================================
 
 if __name__ == "__main__":
