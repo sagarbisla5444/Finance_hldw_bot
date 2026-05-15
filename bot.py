@@ -26,7 +26,7 @@ from telegram.ext import (
 # BOT CONFIG
 # =========================================================
 
-BOT_TOKEN = "8797941814:AAEqF9WlplF2poCghdyi-ej1an_obBXeD0A"
+BOT_TOKEN = "TOKEN"
 
 # =========================================================
 # ADMIN PASSWORD
