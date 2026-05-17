@@ -537,10 +537,16 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await update.message.reply_text(
                 "❌ Wrong Syntax\n\n"
-                "/add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS"
+                "/add NAME MOBILE LOAN RETURN FILECHARGE TYPE INSTALLMENTS STARTDATE\n\n"
+                "Example:\n"
+                "/add Ramesh 9876543210 10000 12000 500 weekly 12 2026-05-17"
             )
 
             return
+
+        # =====================================================
+        # INPUTS
+        # =====================================================
 
         name = args[0]
 
@@ -558,73 +564,84 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         start_date = args[7]
 
+        # =====================================================
+        # VALIDATE DATE
+        # =====================================================
+
+        try:
+
+            start_dt = datetime.strptime(
+                start_date,
+                "%Y-%m-%d"
+            )
+
+        except:
+
+            await update.message.reply_text(
+                "❌ Invalid date format.\n\n"
+                "Use:\nYYYY-MM-DD\n\n"
+                "Example:\n2026-05-17"
+            )
+
+            return
+
+        # =====================================================
+        # CALCULATIONS
+        # =====================================================
+
         installment_amount = (
             return_amount / total_installments
         )
+
+        pending_amount = return_amount
 
         total_profit = (
             (return_amount - loan_amount)
             + file_charge
         )
-        pending_amount = return_amount
 
         created_date = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
 
-        start_dt = datetime.strptime(
-            start_date,
-            "%Y-%m-%d"
-        )
-        
+        # =====================================================
         # FIRST DUE DATE
-        
+        # =====================================================
+
         if installment_type == "daily":
-        
+
             next_due_date = (
                 start_dt + timedelta(days=1)
             ).strftime("%Y-%m-%d")
-        
+
         elif installment_type == "weekly":
-        
+
             next_due_date = (
                 start_dt + timedelta(days=7)
             ).strftime("%Y-%m-%d")
-        
+
         elif installment_type == "monthly":
-        
+
             next_due_date = (
                 start_dt + timedelta(days=30)
-        ).strftime("%Y-%m-%d")
-        
-        else:
-
-            next_due_date = start_date
-
-        # NEXT DUE DATE
-        if installment_type == "daily":
-
-            next_due_date = (
-                today + timedelta(days=1)
-            ).strftime("%Y-%m-%d")
-
-        elif installment_type == "weekly":
-
-            next_due_date = (
-                today + timedelta(days=7)
-            ).strftime("%Y-%m-%d")
-
-        elif installment_type == "monthly":
-
-            next_due_date = (
-                today + timedelta(days=30)
             ).strftime("%Y-%m-%d")
 
         else:
 
-            next_due_date = today.strftime("%Y-%m-%d")
+            await update.message.reply_text(
+                "❌ Invalid installment type.\n\n"
+                "Use:\n"
+                "daily\n"
+                "weekly\n"
+                "monthly"
+            )
 
-        # INSERT
+            return
+
+        # =====================================================
+        # INSERT CUSTOMER
+        # =====================================================
+
         cursor.execute("""
         INSERT INTO customers (
 
@@ -666,7 +683,9 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         customer_id = cursor.lastrowid
 
-        profit = return_amount - loan_amount
+        # =====================================================
+        # SUCCESS MESSAGE
+        # =====================================================
 
         msg = f"""
 ✅ CUSTOMER ADDED
@@ -677,23 +696,35 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 📱 Mobile: {mobile}
 
-💰 Loan: ₹{loan_amount}
+💰 Loan Amount:
+₹{loan_amount}
 
-📁 File Charge: ₹{file_charge}
+💵 Return Amount:
+₹{return_amount}
 
-💵 Return: ₹{return_amount}
+📁 File Charge:
+₹{file_charge}
 
-📈 Total Profit: ₹{total_profit}
+📈 Total Profit:
+₹{total_profit}
 
-📆 Type: {installment_type}
+📆 Installment Type:
+{installment_type}
 
-💳 Installment: ₹{installment_amount:.2f}
+🔁 Total Installments:
+{total_installments}
+
+💳 Installment Amount:
+₹{installment_amount:.2f}
 
 📅 Start Date:
 {start_date}
 
-📅 Next Due:
+📅 First Due Date:
 {next_due_date}
+
+📉 Pending Amount:
+₹{pending_amount}
 """
 
         await update.message.reply_text(msg)
@@ -703,7 +734,7 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"❌ Error:\n{str(e)}"
         )
-
+        
 # =========================================================
 # PAYMENT
 # =========================================================
@@ -736,13 +767,17 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         amount = float(args[1])
 
+        # =====================================================
         # GET CUSTOMER
+        # =====================================================
+
         cursor.execute("""
         SELECT
             name,
             paid_amount,
             pending_amount,
-            installment_type
+            installment_type,
+            next_due_date
         FROM customers
         WHERE id=?
         """, (customer_id,))
@@ -759,65 +794,66 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         customer_name = customer[0]
 
-        paid_amount = customer[1] + amount
+        old_paid_amount = customer[1]
 
-        pending_amount = customer[2] - amount
+        old_pending_amount = customer[2]
 
         installment_type = customer[3]
 
-        start_dt = datetime.strptime(
-            start_date,
+        current_due_date = customer[4]
+
+        # =====================================================
+        # CALCULATIONS
+        # =====================================================
+
+        paid_amount = old_paid_amount + amount
+
+        pending_amount = old_pending_amount - amount
+
+        # Prevent negative pending
+        if pending_amount < 0:
+
+            pending_amount = 0
+
+        # =====================================================
+        # CURRENT DUE DATE
+        # =====================================================
+
+        current_due = datetime.strptime(
+            current_due_date,
             "%Y-%m-%d"
         )
-        
-        # FIRST DUE DATE
-        
-        if installment_type == "daily":
-        
-            next_due_date = (
-                start_dt + timedelta(days=1)
-            ).strftime("%Y-%m-%d")
-        
-        elif installment_type == "weekly":
-        
-            next_due_date = (
-                start_dt + timedelta(days=7)
-            ).strftime("%Y-%m-%d")
-        
-        elif installment_type == "monthly":
-        
-            next_due_date = (
-                start_dt + timedelta(days=30)
-        ).strftime("%Y-%m-%d")
-        
-        else:
 
-            next_due_date = start_date
-
+        # =====================================================
         # NEXT DUE DATE
+        # =====================================================
+
         if installment_type == "daily":
 
             next_due_date = (
-                today + timedelta(days=1)
+                current_due + timedelta(days=1)
             ).strftime("%Y-%m-%d")
 
         elif installment_type == "weekly":
 
             next_due_date = (
-                today + timedelta(days=7)
+                current_due + timedelta(days=7)
             ).strftime("%Y-%m-%d")
 
         elif installment_type == "monthly":
 
             next_due_date = (
-                today + timedelta(days=30)
+                current_due + timedelta(days=30)
             ).strftime("%Y-%m-%d")
 
         else:
 
-            next_due_date = today.strftime("%Y-%m-%d")
+            next_due_date = current_due_date
 
-        # UPDATE
+        # =====================================================
+        # UPDATE CUSTOMER
+        # =====================================================
+
         cursor.execute("""
         UPDATE customers
         SET
@@ -833,11 +869,18 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
             customer_id
         ))
 
+        # =====================================================
+        # PAYMENT DATE
+        # =====================================================
+
         payment_date = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
 
-        # PAYMENT HISTORY
+        # =====================================================
+        # SAVE PAYMENT HISTORY
+        # =====================================================
+
         cursor.execute("""
         INSERT INTO payments (
 
@@ -858,6 +901,10 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         conn.commit()
 
+        # =====================================================
+        # SUCCESS MESSAGE
+        # =====================================================
+
         msg = f"""
 ✅ PAYMENT ADDED
 
@@ -865,14 +912,24 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 👤 Name: {customer_name}
 
-💵 Paid: ₹{amount}
+💵 Received:
+₹{amount}
 
-✅ Total Paid: ₹{paid_amount}
+━━━━━━━━━━━━━━━━━━
 
-📉 Pending: ₹{pending_amount}
+✅ Total Paid:
+₹{paid_amount}
+
+📉 Remaining:
+₹{pending_amount}
+
+📅 Previous Due:
+{current_due_date}
 
 📅 Next Due:
 {next_due_date}
+
+✅ Overdue Reset
 """
 
         await update.message.reply_text(msg)
@@ -882,7 +939,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"❌ Error:\n{str(e)}"
         )
-
+        
 # =========================================================
 # CUSTOMER DETAILS
 # =========================================================
