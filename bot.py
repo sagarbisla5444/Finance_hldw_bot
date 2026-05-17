@@ -86,6 +86,10 @@ CREATE TABLE IF NOT EXISTS customers (
 
     return_amount REAL,
 
+    file_charge REAL DEFAULT 0,
+
+    total_profit REAL DEFAULT 0,
+
     installment_type TEXT,
 
     total_installments INTEGER,
@@ -95,6 +99,8 @@ CREATE TABLE IF NOT EXISTS customers (
     paid_amount REAL DEFAULT 0,
 
     pending_amount REAL,
+
+    start_date TEXT,
 
     next_due_date TEXT,
 
@@ -237,7 +243,7 @@ Logout from admin panel.
 3️⃣ ADD NEW CUSTOMER
 
 Command:
-/add NAME MOBILE LOAN RETURN TYPE INSTALLMENTS
+/add NAME MOBILE LOAN RETURN FILECHARGE TYPE INSTALLMENTS STARTDATE
 
 Purpose:
 Create new finance customer entry.
@@ -264,12 +270,13 @@ daily / weekly / monthly
 Total number of installments
 
 Example:
-/add Ramesh 9876543210 10000 12000 weekly 12
+/add Ramesh 9876543210 10000 12000 500 weekly 12 17-05-2026
 
 Meaning:
 ✅ Loan Given = ₹10,000
 ✅ Return Amount = ₹12,000
-✅ Profit = ₹2,000
+✅ File Charge = ₹500
+✅ Profit = ₹2,500
 ✅ Weekly Collection
 ✅ 12 Installments
 
@@ -526,7 +533,7 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         args = context.args
 
-        if len(args) < 6:
+        if len(args) < 8:
 
             await update.message.reply_text(
                 "❌ Wrong Syntax\n\n"
@@ -543,21 +550,56 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return_amount = float(args[3])
 
-        installment_type = args[4].lower()
+        file_charge = float(args[4])
 
-        total_installments = int(args[5])
+        installment_type = args[5].lower()
+
+        total_installments = int(args[6])
+
+        start_date = args[7]
 
         installment_amount = (
             return_amount / total_installments
         )
 
+        total_profit = (
+            (return_amount - loan_amount)
+            + file_charge
+        )
         pending_amount = return_amount
 
         created_date = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
 
-        today = datetime.now()
+        start_dt = datetime.strptime(
+            start_date,
+            "%Y-%m-%d"
+        )
+        
+        # FIRST DUE DATE
+        
+        if installment_type == "daily":
+        
+            next_due_date = (
+                start_dt + timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+        
+        elif installment_type == "weekly":
+        
+            next_due_date = (
+                start_dt + timedelta(days=7)
+            ).strftime("%Y-%m-%d")
+        
+        elif installment_type == "monthly":
+        
+            next_due_date = (
+                start_dt + timedelta(days=30)
+        ).strftime("%Y-%m-%d")
+        
+        else:
+
+            next_due_date = start_date
 
         # NEXT DUE DATE
         if installment_type == "daily":
@@ -590,26 +632,32 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mobile,
             loan_amount,
             return_amount,
+            file_charge,
+            total_profit,
             installment_type,
             total_installments,
             installment_amount,
             pending_amount,
+            start_date,
             next_due_date,
             created_date
 
         )
 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
 
             name,
             mobile,
             loan_amount,
             return_amount,
+            file_charge,
+            total_profit,
             installment_type,
             total_installments,
             installment_amount,
             pending_amount,
+            start_date,
             next_due_date,
             created_date
         ))
@@ -631,13 +679,18 @@ async def add_customer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 💰 Loan: ₹{loan_amount}
 
+📁 File Charge: ₹{file_charge}
+
 💵 Return: ₹{return_amount}
 
-📈 Profit: ₹{profit}
+📈 Total Profit: ₹{total_profit}
 
 📆 Type: {installment_type}
 
 💳 Installment: ₹{installment_amount:.2f}
+
+📅 Start Date:
+{start_date}
 
 📅 Next Due:
 {next_due_date}
@@ -712,7 +765,34 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         installment_type = customer[3]
 
-        today = datetime.now()
+                start_dt = datetime.strptime(
+            start_date,
+            "%Y-%m-%d"
+        )
+        
+        # FIRST DUE DATE
+        
+        if installment_type == "daily":
+        
+            next_due_date = (
+                start_dt + timedelta(days=1)
+            ).strftime("%Y-%m-%d")
+        
+        elif installment_type == "weekly":
+        
+            next_due_date = (
+                start_dt + timedelta(days=7)
+            ).strftime("%Y-%m-%d")
+        
+        elif installment_type == "monthly":
+        
+            next_due_date = (
+                start_dt + timedelta(days=30)
+        ).strftime("%Y-%m-%d")
+        
+        else:
+
+            next_due_date = start_date
 
         # NEXT DUE DATE
         if installment_type == "daily":
@@ -979,7 +1059,14 @@ async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     pending = data[3] or 0
 
-    profit = returns - invested
+    cursor.execute("""
+    SELECT SUM(total_profit)
+    FROM customers
+    """)
+
+    profit_data = cursor.fetchone()
+
+    profit = profit_data[0] or 0
 
     msg = f"""
 📊 TOTAL SUMMARY
