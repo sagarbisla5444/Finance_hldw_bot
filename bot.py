@@ -765,7 +765,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         installment_type = customer[3]
 
-                start_dt = datetime.strptime(
+        start_dt = datetime.strptime(
             start_date,
             "%Y-%m-%d"
         )
